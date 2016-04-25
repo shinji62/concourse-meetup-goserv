@@ -1,0 +1,175 @@
+---
+groups:
+  - name: concourse-meetup-goserv
+    jobs: 
+    - unit-testing
+    - downstream-master
+    - unit-testing-master
+    - tag-master
+    - ship-it
+  - name: master
+    jobs:
+    - downstream-master
+    - unit-testing-master
+    - tag-master
+    - ship-it
+  - name: develop
+    jobs:
+    - unit-testing
+
+
+
+jobs:
+- name: unit-testing
+  public: true
+  serial: true
+  plan:
+   - get: concourse-meetup-goserv-ci 
+     resource: concourse-meetup-goserv-develop
+     trigger: true
+   - task: unit-testing
+     file: concourse-meetup-goserv-ci/ci/unit-testing/unit-testing.yml
+     
+
+- name: unit-testing-master
+  public: true
+  serial: true
+  plan:
+  - get: concourse-meetup-goserv-ci
+    resource: concourse-meetup-goserv-master 
+    trigger: true
+  - task: unit-testing
+    file: concourse-meetup-goserv-ci/ci/unit-testing/unit-testing.yml
+
+
+- name: tag-master
+  public: true
+  serial: true
+  plan:  
+  - get: concourse-meetup-goserv-ci
+    resource: concourse-meetup-goserv-master 
+    passed: [unit-testing-master]
+  - put: version
+    params: {bump: minor}
+  - put: concourse-meetup-goserv-master 
+    params: 
+      only_tag: true
+      repository: concourse-meetup-goserv-ci
+      tag: version/number
+
+
+- name: ship-it
+  public: true
+  serial: true
+  plan:
+  - get: concourse-meetup-goserv-ci
+    resource: concourse-meetup-goserv-master 
+    passed: [tag-master]
+    trigger: true
+  - get: version
+  - task: build-binary
+    file: concourse-meetup-goserv-ci/ci/build-all/build-all.yml
+  - put: gh-release
+    params :
+      name: version/number
+      tag: version/number
+      globs:
+      - concourse-meetup-goserv-ci-build/dist/*/*/*
+
+
+- name: Deploy-it
+  public: true
+  serial: true
+  plan:
+  - get: concourse-meetup-goserv-ci
+    resource: concourse-meetup-goserv-master 
+    passed: [tag-master]
+    trigger: true
+  - get: version
+  - task: deploy-pws
+    file: concourse-meetup-goserv-ci/ci/push-app/push-app.yml
+    params:
+      CF_APP_NAME: concourse-meetup-goserv
+      CF_SYSTEM_DOMAIN: {{}}
+      CF_USER: {{pws-username}}
+      CF_USER_PASS: {{pws-password}}
+      CF_ORG: {{pws-org}}
+      CF_SPACE: {{pws-space}}
+      CF_APP_DOMAIN: cfapps.io
+      FINAL_ROUTE_SUBDOMAIN: cmg-tokyo
+      VERSION_APP: version/number
+
+
+
+- name: downstream-master
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-meetup-goserv-ci
+      resource: concourse-meetup-goserv-develop
+    - get: release-repo-master
+      resource: concourse-meetup-goserv-master 
+      trigger: true
+      passed: [tag-master]
+    - get: release-repo
+      resource: concourse-meetup-goserv-merge-target
+  - task: merge-master-to-develop
+    file: concourse-meetup-goserv-ci/ci/merge-master-to-develop/merge-master-to-develop.yml
+    params:
+      GIT_USERNAME: {{github-username}}
+      GIT_EMAIL:  {{github-email}}
+
+
+
+
+resources:
+- name: concourse-meetup-goserv-merge-target
+  type: git
+  source:
+    branch: develop
+    private_key: {{private-key-github-concourse}}
+    uri: git@github.com:shinji62/concourse-meetup-goserv.git
+
+- name: concourse-meetup-goserv-develop
+  type: git
+  source:
+    uri: git@github.com:shinji62/concourse-meetup-goserv.git
+    branch: develop
+    private_key: {{private-key-github-concourse}}
+
+- name: concourse-meetup-goserv-master
+  type: git
+  source:
+    uri: git@github.com:shinji62/concourse-meetup-goserv.git
+    branch: master
+    private_key: {{private-key-github-concourse}}
+
+
+
+- name: gh-release
+  type: github-release
+  source:
+    user: shinji62
+    repository: concourse-meetup-goserv
+    access_token: {{private-key-github-concourse}}
+
+- name: version
+  type: semver-gwenn
+  source:
+    driver: git
+    uri: git@github.com:shinji62/concourse-meetup-goserv.git
+    branch: version
+    file: version
+    private_key: {{private-key-github-concourse}}
+    git_user: {{concourse-user-gitinfo}}
+
+
+
+resource_types:
+- name: semver-gwenn
+  type: docker-image
+  source:
+    repository: getourneau/semver-resource
+
+

@@ -1,0 +1,89 @@
+#!/bin/bash -eu
+
+CF_APP_NAME="${CF_APP_NAME:?"CF_APP_NAME required"}"
+CF_SYSTEM_DOMAIN="${CF_SYSTEM_DOMAIN:?"CF_SYSTEM_DOMAIN required"}"
+CF_USER="${CF_USER:?"CF_USER required"}"
+CF_USER_PASS="${CF_USER_PASS:?"CF_USER_PASS required"}"
+CF_ORG="${CF_ORG:?"CF_ORG required"}"
+CF_SPACE="${CF_SPACE:?"CF_SPACE required"}"
+CF_APP_DOMAIN="${CF_APP_DOMAIN:?"CF_APP_DOMAIN required"}"
+FINAL_ROUTE_SUBDOMAIN="${FINAL_ROUTE_SUBDOMAIN:?"FINAL_ROUTE_SUBDOMAIN required"}"
+#VERSION_APP="${VERSION_APP:?"VERSION_APP required"}"
+VERSION_APP=$(cat ${VERSION_APP})
+
+
+
+
+pushd release-repos > /dev/null
+
+  ls -lah
+
+  cf login -a https://api.$CF_SYSTEM_DOMAIN -u $CF_USER -p $CF_USER_PASS -o $CF_ORG -s $CF_SPACE --skip-ssl-validation
+
+
+  CF_APPS_DOMAIN=$CF_SYSTEM_DOMAIN
+  DEPLOYED_VERSION_CMD=$(CF_COLOR=false cf apps | grep "${FINAL_ROUTE_SUBDOMAIN}.${CF_APP_DOMAIN}" | grep started | awk '{print $1}')
+  DEPLOYED_VERSION=$(echo "${DEPLOYED_VERSION_CMD}")
+  ROUTE_VERSION=$(echo "${VERSION_APP}" | cut -d"." -f1-3 | tr '.' '-')
+  echo "Deployed Version: $DEPLOYED_VERSION"
+  echo "Route Version: $ROUTE_VERSION"
+
+
+
+ if [ "${DEPLOYED_VERSION}" == "${CF_APP_NAME}-${VERSION_APP}" ];
+   then
+   "This version is already running and mapped"
+   exit 1
+ fi
+
+  # push a new version and map the route
+  cf push "${CF_APP_NAME}-${VERSION_APP}" \
+  -n "${CF_APP_NAME}-${ROUTE_VERSION}" \
+  -d ${CF_APP_DOMAIN} \
+  --no-start
+
+
+  cf start "${CF_APP_NAME}-${VERSION_APP}" 
+
+
+  #Wait 30 sec that the application show up
+  for i in {1..30}
+  do
+   sleep 1
+   curlTest=$(curl -X GET -s -o /dev/null -I -w "%{http_code}" http://${CF_APP_NAME}-${ROUTE_VERSION}.${CF_APP_DOMAIN}/bar)
+   if [ "${curlTest}" != "200" ]
+   then
+      if [ $i == 30 ]
+      then
+        exit 1
+      else
+        echo  "$i Could not join the route: ${curlTest} http://${CF_APP_NAME}-${ROUTE_VERSION}.${CF_APP_DOMAIN}/bar"
+      fi
+   else
+      echo "Route respond : ${CF_APP_NAME}-${ROUTE_VERSION}.${CF_APP_DOMAIN}/bar"
+      break
+   fi
+ done 
+
+
+ cf map-route "${CF_APP_NAME}-${VERSION_APP}" $CF_APP_DOMAIN -n "${FINAL_ROUTE_SUBDOMAIN}"
+
+
+ if [ ! -z "${DEPLOYED_VERSION}" -a "${DEPLOYED_VERSION}" != " " -a "${DEPLOYED_VERSION}" != "${CF_APP_NAME}-${VERSION_APP}" ]; then
+   echo "Performing zero-downtime cutover to ${VERSION_APP}"
+   echo "${DEPLOYED_VERSION}" | while read line
+   do
+     if [ ! -z "$line" -a "$line" != " " -a "$line" != "${CF_APP_NAME}-${VERSION_APP}" ]; then
+       echo "Scaling down, unmapping and removing $line"
+       # Unmap the route and delete
+       cf unmap-route "$line" ${CF_APP_DOMAIN} -n "${FINAL_ROUTE_SUBDOMAIN}"
+       cf stop "$line"
+     else
+       echo "Skipping $line"
+     fi
+   done
+ fi
+
+
+
+popd > /dev/null
