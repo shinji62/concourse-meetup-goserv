@@ -7,12 +7,14 @@ groups:
     - unit-testing-master
     - tag-master
     - ship-it
+    - deploy-it
   - name: master
     jobs:
     - downstream-master
     - unit-testing-master
     - tag-master
     - ship-it
+    - deploy-it
   - name: develop
     jobs:
     - unit-testing
@@ -77,7 +79,7 @@ jobs:
       - concourse-meetup-goserv-ci-build/dist/*/*/*
 
 
-- name: Deploy-it
+- name: deploy-it
   public: true
   serial: true
   plan:
@@ -87,6 +89,7 @@ jobs:
     trigger: true
   - get: version
   - task: deploy-pws
+    input_mapping: {release-repos: concourse-meetup-goserv-ci}
     file: concourse-meetup-goserv-ci/ci/push-app/push-app.yml
     params:
       CF_APP_NAME: concourse-meetup-goserv
@@ -152,7 +155,7 @@ resources:
   source:
     user: shinji62
     repository: concourse-meetup-goserv
-    access_token: {{private-key-github-concourse}}
+    access_token: {{github-access-token}}
 
 - name: version
   type: semver-gwenn
