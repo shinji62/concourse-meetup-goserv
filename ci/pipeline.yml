@@ -90,7 +90,7 @@ jobs:
     file: concourse-meetup-goserv-ci/ci/push-app/push-app.yml
     params:
       CF_APP_NAME: concourse-meetup-goserv
-      CF_SYSTEM_DOMAIN: {{}}
+      CF_SYSTEM_DOMAIN: run.pivotal.io
       CF_USER: {{pws-username}}
       CF_USER_PASS: {{pws-password}}
       CF_ORG: {{pws-org}}
