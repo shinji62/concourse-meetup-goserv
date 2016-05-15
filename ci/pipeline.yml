@@ -122,7 +122,9 @@ jobs:
     params:
       GIT_USERNAME: {{github-username}}
       GIT_EMAIL:  {{github-email}}
-
+  - put: concourse-meetup-goserv-merge-target
+    params:
+      repository: final-release-repo
 
 
 
