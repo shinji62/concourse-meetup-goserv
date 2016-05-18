@@ -12,7 +12,7 @@ var (
 )
 
 func BarHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, World Concourse Meetup")
+	fmt.Fprintf(w, "Hello, World")
 }
 
 func main() {
