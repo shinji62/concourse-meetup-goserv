@@ -1,11 +1,12 @@
 #!/bin/bash
-
 set -e -u -x
-ls -lah
 export ROOT_DIR=$PWD
-mkdir -p $GOPATH/src/github.com/shinji62/concourse-meetup-goserv/
-cp -R concourse-meetup-goserv-ci/*  $GOPATH/src/github.com/shinji62/concourse-meetup-goserv/
-cd $GOPATH/src/github.com/shinji62/concourse-meetup-goserv/	
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+cd $GOPATH/src/github.com/shinji62/concourse-meetup-goserv/
+
 make clean
 make compile
+
 mv dist ${ROOT_DIR}/concourse-meetup-goserv-ci-build/

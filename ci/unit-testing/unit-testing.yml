@@ -8,7 +8,8 @@ image_resource:
 
 inputs:
   - name: concourse-meetup-goserv-ci
+    path: gopath/src/github.com/shinji62/concourse-meetup-goserv
   
 run:
-  path: concourse-meetup-goserv-ci/ci/unit-testing/unit-testing
+  path: gopath/src/github.com/shinji62/concourse-meetup-goserv/ci/unit-testing/unit-testing
 

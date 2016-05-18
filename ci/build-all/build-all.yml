@@ -9,9 +9,10 @@ image_resource:
 
 inputs:
   - name: concourse-meetup-goserv-ci
+    path: gopath/src/github.com/shinji62/concourse-meetup-goserv
 
 outputs:
   - name: concourse-meetup-goserv-ci-build 
   
 run:
-  path: concourse-meetup-goserv-ci/ci/build-all/build-all
+  path: gopath/src/github.com/shinji62/concourse-meetup-goserv/ci/build-all/build-all

@@ -25,3 +25,4 @@ _testmain.go
 fly.sh
 ./fly.sh
 dist
+concourse-meetup-goserv
