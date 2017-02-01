@@ -1,7 +1,7 @@
 ---
 groups:
   - name: concourse-meetup-goserv
-    jobs: 
+    jobs:
     - unit-testing
     - downstream-master
     - unit-testing-master
@@ -26,19 +26,19 @@ jobs:
   public: true
   serial: true
   plan:
-   - get: concourse-meetup-goserv-ci 
+   - get: concourse-meetup-goserv-ci
      resource: concourse-meetup-goserv-develop
      trigger: true
    - task: unit-testing
      file: concourse-meetup-goserv-ci/ci/unit-testing/unit-testing.yml
-     
+
 
 - name: unit-testing-master
   public: true
   serial: true
   plan:
   - get: concourse-meetup-goserv-ci
-    resource: concourse-meetup-goserv-master 
+    resource: concourse-meetup-goserv-master
     trigger: true
   - task: unit-testing
     file: concourse-meetup-goserv-ci/ci/unit-testing/unit-testing.yml
@@ -47,14 +47,14 @@ jobs:
 - name: tag-master
   public: true
   serial: true
-  plan:  
+  plan:
   - get: concourse-meetup-goserv-ci
-    resource: concourse-meetup-goserv-master 
+    resource: concourse-meetup-goserv-master
     passed: [unit-testing-master]
   - put: version
     params: {bump: minor}
-  - put: concourse-meetup-goserv-master 
-    params: 
+  - put: concourse-meetup-goserv-master
+    params:
       only_tag: true
       repository: concourse-meetup-goserv-ci
       tag: version/number
@@ -65,7 +65,7 @@ jobs:
   serial: true
   plan:
   - get: concourse-meetup-goserv-ci
-    resource: concourse-meetup-goserv-master 
+    resource: concourse-meetup-goserv-master
     passed: [tag-master]
     trigger: true
   - get: version
@@ -84,23 +84,14 @@ jobs:
   serial: true
   plan:
   - get: concourse-meetup-goserv-ci
-    resource: concourse-meetup-goserv-master 
+    resource: concourse-meetup-goserv-master
     passed: [tag-master]
     trigger: true
   - get: version
-  - task: deploy-pws
-    input_mapping: {release-repos: concourse-meetup-goserv-ci}
-    file: concourse-meetup-goserv-ci/ci/push-app/push-app.yml
+  - put: resource-deploy-to-pws
     params:
-      CF_APP_NAME: concourse-meetup-goserv
-      CF_SYSTEM_DOMAIN: run.pivotal.io
-      CF_USER: {{pws-username}}
-      CF_USER_PASS: {{pws-password}}
-      CF_ORG: {{pws-org}}
-      CF_SPACE: {{pws-space}}
-      CF_APP_DOMAIN: cfapps.io
-      FINAL_ROUTE_SUBDOMAIN: cmg-tokyo
-      VERSION_APP: version/number
+      manifest: concourse-meetup-goserv-ci/manifest.yml
+
 
 
 
@@ -112,7 +103,7 @@ jobs:
     - get: concourse-meetup-goserv-ci
       resource: concourse-meetup-goserv-develop
     - get: release-repo-master
-      resource: concourse-meetup-goserv-master 
+      resource: concourse-meetup-goserv-master
       trigger: true
       passed: [tag-master]
     - get: release-repo
@@ -151,6 +142,15 @@ resources:
     private_key: {{private-key-github-concourse}}
 
 
+- name: resource-deploy-to-pws
+  type: cf
+  source:
+    api: {{pws-api}}
+    username: {{pws-username}}
+    password: {{pws-password}}
+    organization: {{pws-org}}
+    space: {{pws-space-dev}}
+    skip_cert_check: false
 
 - name: gh-release
   type: github-release
@@ -160,7 +160,7 @@ resources:
     access_token: {{github-access-token}}
 
 - name: version
-  type: semver-gwenn
+  type: semver
   source:
     driver: git
     uri: git@github.com:shinji62/concourse-meetup-goserv.git
@@ -168,13 +168,3 @@ resources:
     file: version
     private_key: {{private-key-github-concourse}}
     git_user: {{concourse-user-gitinfo}}
-
-
-
-resource_types:
-- name: semver-gwenn
-  type: docker-image
-  source:
-    repository: getourneau/semver-resource
-
-
