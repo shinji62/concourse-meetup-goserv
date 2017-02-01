@@ -1,12 +1,12 @@
-package main_test
+package main
 
 import (
+	"io/ioutil"
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/shinji62/concourse-meetup-goserv"
-	"io/ioutil"
-	"net/http"
 )
 
 var _ = Describe("Main", func() {
@@ -15,7 +15,7 @@ var _ = Describe("Main", func() {
 
 	BeforeEach(func() {
 		backend = ghttp.NewServer()
-		backend.AppendHandlers(main.BarHandler)
+		backend.AppendHandlers(BarHandler)
 		getReq, _ = http.NewRequest("GET", backend.URL()+"/bar", nil)
 
 	})
