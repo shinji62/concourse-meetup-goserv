@@ -92,6 +92,7 @@ jobs:
     params:
       manifest: concourse-meetup-goserv-ci/manifest.yml
       path: concourse-meetup-goserv-ci/
+      current_app_name: concourse-meetup-goserv
 
 
 
