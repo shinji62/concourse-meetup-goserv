@@ -91,6 +91,7 @@ jobs:
   - put: resource-deploy-to-pws
     params:
       manifest: concourse-meetup-goserv-ci/manifest.yml
+      path: concourse-meetup-goserv-ci/
 
 
 
@@ -133,6 +134,7 @@ resources:
     uri: git@github.com:shinji62/concourse-meetup-goserv.git
     branch: develop
     private_key: {{private-key-github-concourse}}
+  webhook_token: {{webhook_token}}
 
 - name: concourse-meetup-goserv-master
   type: git
