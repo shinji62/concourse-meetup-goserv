@@ -1,0 +1,16 @@
+package: github.com/shinji62/concourse-meetup-goserv
+import:
+- package: github.com/alecthomas/template
+  version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
+- package: github.com/alecthomas/units
+  version: 6b4e7dc5e3143b85ea77909c72caf89416fc2915
+- package: github.com/golang/protobuf
+  version: 62e4364d64b32762febb61f2c88c0a29bc49a225
+  subpackages:
+  - proto
+- package: github.com/onsi/ginkgo
+  version: c3a655f9b37a2207fa39721b078b3173ee9218d6
+- package: github.com/onsi/gomega
+  version: 7ce781ea776b2fd506491011353bded2e40c8467
+- package: gopkg.in/alecthomas/kingpin.v2
+  version: ~2.1.11
